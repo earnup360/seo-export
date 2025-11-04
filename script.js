@@ -1,14 +1,14 @@
 // গ্লোবাল ভেরিয়েবল
-let geminiModel = null;
+let openAIApiKey = null;
 let chatHistory = [];
 
 // পেজ লোড হলে চেক করবে API key আছে কিনা
 document.addEventListener('DOMContentLoaded', function() {
-    const savedApiKey = localStorage.getItem('geminiApiKey');
+    const savedApiKey = localStorage.getItem('openAIApiKey');
     
     if (savedApiKey) {
-        initializeGemini(savedApiKey);
-        showChatInterface();
+        openAIApiKey = savedApiKey;
+        testOpenAIConnection(savedApiKey);
     } else {
         showApiKeyModal();
     }
@@ -31,11 +31,11 @@ function closeHelp() {
 }
 
 // API key সেভ করা
-function saveApiKey() {
+async function saveApiKey() {
     const apiKey = document.getElementById('apiKeyInput').value.trim();
     
     if (!apiKey) {
-        alert('Please enter your Gemini API key');
+        alert('Please enter your OpenAI API key');
         return;
     }
     
@@ -45,73 +45,116 @@ function saveApiKey() {
         return;
     }
     
-    localStorage.setItem('geminiApiKey', apiKey);
-    initializeGemini(apiKey);
-    showChatInterface();
+    localStorage.setItem('openAIApiKey', apiKey);
+    await testOpenAIConnection(apiKey);
 }
 
-// Gemini API initialize করা
-async function initializeGemini(apiKey) {
+// OpenAI API connection টেস্ট করা
+async function testOpenAIConnection(apiKey) {
     try {
-        // Gemini AI লাইব্রেরি লোড হয়েছে কিনা চেক করা
-        if (typeof google === 'undefined' || !google.generativeai) {
-            throw new Error('Gemini AI library not loaded properly');
-        }
-        
-        const genAI = google.generativeai;
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-pro",
-            apiKey: apiKey
-        });
+        showLoadingState();
         
         // একটি টেস্ট রিকুয়েস্ট পাঠানো
-        const testResult = await model.generateContent("Hello");
-        await testResult.response;
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: [{ role: 'user', content: 'Say "Hello" only.' }],
+                max_tokens: 10
+            })
+        });
         
-        geminiModel = model;
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // যদি সফল হয়
+        openAIApiKey = apiKey;
         updateApiStatus('Connected', true);
+        showChatInterface();
         enableChatInterface();
         
     } catch (error) {
-        console.error('Error initializing Gemini:', error);
-        updateApiStatus('Connection Failed', false);
-        
-        // API key ভুল হলে রিমুভ করে দেয়া
-        localStorage.removeItem('geminiApiKey');
-        alert('Failed to connect with the provided API key. Please check your key and try again.');
-        showApiKeyModal();
+        console.error('Error connecting to OpenAI:', error);
+        handleConnectionError(error);
     }
+}
+
+// লোডিং স্টেট দেখানো
+function showLoadingState() {
+    updateApiStatus('Connecting...', false);
 }
 
 // API status আপডেট করা
 function updateApiStatus(status, isConnected) {
     const statusElement = document.getElementById('apiStatus');
-    statusElement.textContent = status;
-    
-    if (isConnected) {
-        statusElement.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
-    } else {
-        statusElement.style.backgroundColor = 'rgba(244, 67, 54, 0.2)';
+    if (statusElement) {
+        statusElement.textContent = status;
+        
+        if (isConnected) {
+            statusElement.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+            statusElement.style.color = '#2e7d32';
+        } else {
+            statusElement.style.backgroundColor = 'rgba(244, 67, 54, 0.2)';
+            statusElement.style.color = '#c62828';
+        }
     }
+}
+
+// কানেকশন error হ্যান্ডেল করা
+function handleConnectionError(error) {
+    updateApiStatus('Connection Failed', false);
+    
+    let errorMessage = 'Failed to connect. ';
+    
+    if (error.message.includes('401')) {
+        errorMessage += 'The API key is invalid. Please check and try again.';
+    } else if (error.message.includes('429')) {
+        errorMessage += 'Rate limit exceeded. Please try again later.';
+    } else if (error.message.includes('500')) {
+        errorMessage += 'OpenAI server error. Please try again later.';
+    } else if (error.message.includes('NETWORK') || error.message.includes('Fetch')) {
+        errorMessage += 'Network error. Please check your connection.';
+    } else {
+        errorMessage += 'Error: ' + error.message;
+    }
+    
+    alert(errorMessage);
+    
+    // API key ভুল হলে রিমুভ করে দেয়া
+    localStorage.removeItem('openAIApiKey');
+    showApiKeyModal();
 }
 
 // চ্যাট ইন্টারফেস দেখানো
 function showChatInterface() {
-    document.getElementById('apiKeyModal').style.display = 'none';
-    document.getElementById('chatContainer').style.display = 'flex';
+    const apiKeyModal = document.getElementById('apiKeyModal');
+    const chatContainer = document.getElementById('chatContainer');
+    
+    if (apiKeyModal) apiKeyModal.style.display = 'none';
+    if (chatContainer) chatContainer.style.display = 'flex';
 }
 
 // চ্যাট ইন্টারফেস enable করা
 function enableChatInterface() {
-    document.getElementById('userInput').disabled = false;
-    document.getElementById('sendButton').disabled = false;
-    document.getElementById('userInput').focus();
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    
+    if (userInput) userInput.disabled = false;
+    if (sendButton) sendButton.disabled = false;
+    if (userInput) userInput.focus();
 }
 
 // API key পরিবর্তন করা
 function changeApiKey() {
-    localStorage.removeItem('geminiApiKey');
-    geminiModel = null;
+    localStorage.removeItem('openAIApiKey');
+    openAIApiKey = null;
     chatHistory = [];
     showApiKeyModal();
     updateApiStatus('Disconnected', false);
@@ -122,42 +165,63 @@ async function sendMessage() {
     const userInput = document.getElementById('userInput');
     const message = userInput.value.trim();
     
-    if (!message || !geminiModel) return;
+    if (!message || !openAIApiKey) return;
     
     // ইউজারের মেসেজ ডিসপ্লে করা
     displayMessage(message, 'user');
     userInput.value = '';
+    userInput.disabled = true;
     
     // টাইপিং ইন্ডিকেটর দেখানো
     showTypingIndicator();
     
     try {
-        // Gemini-তে রিকুয়েস্ট পাঠানো
-        const result = await geminiModel.generateContent(message);
-        const response = await result.response;
-        const text = response.text();
+        // চ্যাট হিস্ট্রি আপডেট করা
+        chatHistory.push({ role: 'user', content: message });
+        
+        // OpenAI API কে কল করা
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAIApiKey}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-3.5-turbo',
+                messages: chatHistory,
+                max_tokens: 500
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const botResponse = data.choices[0].message.content;
         
         // টাইপিং ইন্ডিকেটর রিমুভ করা
         removeTypingIndicator();
         
         // বটের রেসপন্স ডিসপ্লে করা
-        displayMessage(text, 'bot');
+        displayMessage(botResponse, 'bot');
         
         // চ্যাট হিস্ট্রি আপডেট করা
-        chatHistory.push({ role: 'user', content: message });
-        chatHistory.push({ role: 'bot', content: text });
+        chatHistory.push({ role: 'assistant', content: botResponse });
         
     } catch (error) {
-        console.error('Error calling Gemini API:', error);
+        console.error('Error calling OpenAI API:', error);
         removeTypingIndicator();
         
         let errorMessage = 'Sorry, I encountered an error. ';
         
-        if (error.message.includes('API_KEY_INVALID')) {
+        if (error.message.includes('401')) {
             errorMessage += 'Your API key appears to be invalid. Please update it.';
             changeApiKey();
-        } else if (error.message.includes('QUOTA')) {
-            errorMessage += 'You may have exceeded your API quota.';
+        } else if (error.message.includes('429')) {
+            errorMessage += 'Rate limit exceeded. Please try again later.';
+        } else if (error.message.includes('500')) {
+            errorMessage += 'OpenAI server error. Please try again later.';
         } else if (error.message.includes('NETWORK')) {
             errorMessage += 'Network error. Please check your connection.';
         } else {
@@ -165,6 +229,9 @@ async function sendMessage() {
         }
         
         displayMessage(errorMessage, 'bot');
+    } finally {
+        userInput.disabled = false;
+        userInput.focus();
     }
 }
 
