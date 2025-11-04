@@ -30,7 +30,7 @@ function closeHelp() {
     document.getElementById('helpModal').style.display = 'none';
 }
 
-// API key সেভ করা
+// API key সেভ করা - সরলীকৃত
 async function saveApiKey() {
     const apiKey = document.getElementById('apiKeyInput').value.trim();
     
@@ -39,9 +39,14 @@ async function saveApiKey() {
         return;
     }
     
-    // API key ভ্যালিডেশন (বেসিক)
-    if (apiKey.length < 20) {
-        alert('Please enter a valid API key');
+    // শুধু বেসিক ভ্যালিডেশন
+    if (!apiKey.startsWith('sk-')) {
+        alert('Invalid API key format. Should start with "sk-"');
+        return;
+    }
+    
+    if (apiKey.length < 13) {
+        alert('API key seems too short');
         return;
     }
     
@@ -63,13 +68,14 @@ async function testOpenAIConnection(apiKey) {
             },
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
-                messages: [{ role: 'user', content: 'Say "Hello" only.' }],
-                max_tokens: 10
+                messages: [{ role: 'user', content: 'Hello' }],
+                max_tokens: 5
             })
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json().catch(() => null);
+            throw new Error(`HTTP ${response.status}: ${errorData?.error?.message || response.statusText}`);
         }
         
         const data = await response.json();
@@ -111,18 +117,22 @@ function updateApiStatus(status, isConnected) {
 function handleConnectionError(error) {
     updateApiStatus('Connection Failed', false);
     
-    let errorMessage = 'Failed to connect. ';
+    let errorMessage = 'Failed to connect to OpenAI. ';
     
     if (error.message.includes('401')) {
-        errorMessage += 'The API key is invalid. Please check and try again.';
+        errorMessage += 'The API key is invalid or expired.';
     } else if (error.message.includes('429')) {
         errorMessage += 'Rate limit exceeded. Please try again later.';
     } else if (error.message.includes('500')) {
         errorMessage += 'OpenAI server error. Please try again later.';
+    } else if (error.message.includes('402')) {
+        errorMessage += 'Payment required. Please check your OpenAI billing.';
+    } else if (error.message.includes('403')) {
+        errorMessage += 'Access forbidden. Please check your API key permissions.';
     } else if (error.message.includes('NETWORK') || error.message.includes('Fetch')) {
-        errorMessage += 'Network error. Please check your connection.';
+        errorMessage += 'Network error. Please check your internet connection.';
     } else {
-        errorMessage += 'Error: ' + error.message;
+        errorMessage += error.message;
     }
     
     alert(errorMessage);
@@ -189,12 +199,14 @@ async function sendMessage() {
             body: JSON.stringify({
                 model: 'gpt-3.5-turbo',
                 messages: chatHistory,
-                max_tokens: 500
+                max_tokens: 500,
+                temperature: 0.7
             })
         });
         
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            const errorData = await response.json().catch(() => null);
+            throw new Error(`HTTP ${response.status}: ${errorData?.error?.message || response.statusText}`);
         }
         
         const data = await response.json();
@@ -206,26 +218,31 @@ async function sendMessage() {
         // বটের রেসপন্স ডিসপ্লে করা
         displayMessage(botResponse, 'bot');
         
-        // চ্যাট হিস্ট্রি আপডেট করা
+        // চ্যাট হিস্ট্রি আপডেট করা (last 10 messages রাখবো)
         chatHistory.push({ role: 'assistant', content: botResponse });
+        if (chatHistory.length > 20) {
+            chatHistory = chatHistory.slice(-20);
+        }
         
     } catch (error) {
         console.error('Error calling OpenAI API:', error);
         removeTypingIndicator();
         
-        let errorMessage = 'Sorry, I encountered an error. ';
+        let errorMessage = 'Sorry, I encountered an error: ';
         
         if (error.message.includes('401')) {
-            errorMessage += 'Your API key appears to be invalid. Please update it.';
+            errorMessage += 'Invalid API key. Please update your API key.';
             changeApiKey();
         } else if (error.message.includes('429')) {
-            errorMessage += 'Rate limit exceeded. Please try again later.';
+            errorMessage += 'Rate limit exceeded. Please try again in a moment.';
         } else if (error.message.includes('500')) {
-            errorMessage += 'OpenAI server error. Please try again later.';
+            errorMessage += 'OpenAI server error. Please try again.';
+        } else if (error.message.includes('402')) {
+            errorMessage += 'Billing issue. Please check your OpenAI account.';
         } else if (error.message.includes('NETWORK')) {
             errorMessage += 'Network error. Please check your connection.';
         } else {
-            errorMessage += 'Please try again.';
+            errorMessage += error.message;
         }
         
         displayMessage(errorMessage, 'bot');
