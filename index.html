@@ -3,22 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Awesome Chatbot</title>
+    <title>Gemini ChatBot</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="chat-container">
-        <h1>My ChatBot</h1>
-        <div id="chatbox" class="chatbox">
-            <!-- চ্যাটের মেসেজগুলো এখানে দেখাবে -->
-            <div class="bot-message">Hello! How can I help you today?</div>
-        </div>
-        <div class="input-area">
-            <input type="text" id="userInput" placeholder="Type your message here...">
-            <button onclick="sendMessage()">Send</button>
+    <!-- API Key ইনপুট মোডাল -->
+    <div id="apiKeyModal" class="modal">
+        <div class="modal-content">
+            <h2>Setup Your Gemini API Key</h2>
+            <p>To use this chatbot, you need to provide your Google Gemini API key.</p>
+            <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key...">
+            <div class="modal-buttons">
+                <button onclick="saveApiKey()">Connect to Gemini</button>
+                <button onclick="showHelp()">How to Get API Key?</button>
+            </div>
+            <p class="note">Your API key is stored locally in your browser and never sent to our servers.</p>
         </div>
     </div>
 
+    <!-- হেল্প মোডাল -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <h2>How to Get Gemini API Key</h2>
+            <ol>
+                <li>Go to <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a></li>
+                <li>Sign in with your Google account</li>
+                <li>Click on "Get API Key" in the sidebar</li>
+                <li>Create a new API key</li>
+                <li>Copy and paste it here</li>
+            </ol>
+            <button onclick="closeHelp()">Got It</button>
+        </div>
+    </div>
+
+    <!-- মেইন চ্যাট ইন্টারফেস -->
+    <div class="chat-container" id="chatContainer" style="display: none;">
+        <div class="header">
+            <h1>Gemini ChatBot</h1>
+            <div class="api-status">
+                <span id="apiStatus">Connected</span>
+                <button onclick="changeApiKey()">Change API Key</button>
+            </div>
+        </div>
+        
+        <div id="chatbox" class="chatbox">
+            <div class="bot-message">Hello! I'm powered by Google Gemini. How can I help you today?</div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Type your message here..." disabled>
+            <button id="sendButton" onclick="sendMessage()" disabled>Send</button>
+        </div>
+    </div>
+
+    <!-- Gemini AI লাইব্রেরি -->
+    <script src="https://unpkg.com/@google/generative-ai/dist/generative-ai.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
