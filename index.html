@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini ChatBot</title>
+    <title>OpenAI ChatBot</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- API Key ইনপুট মোডাল -->
     <div id="apiKeyModal" class="modal">
         <div class="modal-content">
-            <h2>Setup Your Gemini API Key</h2>
-            <p>To use this chatbot, you need to provide your Google Gemini API key.</p>
-            <input type="password" id="apiKeyInput" placeholder="Enter your Gemini API key...">
+            <h2>Setup Your OpenAI API Key</h2>
+            <p>To use this chatbot, you need to provide your OpenAI API key.</p>
+            <input type="password" id="apiKeyInput" placeholder="Enter your OpenAI API key...">
             <div class="modal-buttons">
-                <button onclick="saveApiKey()">Connect to Gemini</button>
+                <button onclick="saveApiKey()">Connect to OpenAI</button>
                 <button onclick="showHelp()">How to Get API Key?</button>
             </div>
             <p class="note">Your API key is stored locally in your browser and never sent to our servers.</p>
@@ -24,12 +24,11 @@
     <!-- হেল্প মোডাল -->
     <div id="helpModal" class="modal">
         <div class="modal-content">
-            <h2>How to Get Gemini API Key</h2>
+            <h2>How to Get OpenAI API Key</h2>
             <ol>
-                <li>Go to <a href="https://aistudio.google.com/" target="_blank">Google AI Studio</a></li>
-                <li>Sign in with your Google account</li>
-                <li>Click on "Get API Key" in the sidebar</li>
-                <li>Create a new API key</li>
+                <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI API Keys</a></li>
+                <li>Sign in with your OpenAI account</li>
+                <li>Click on "Create new secret key"</li>
                 <li>Copy and paste it here</li>
             </ol>
             <button onclick="closeHelp()">Got It</button>
@@ -39,7 +38,7 @@
     <!-- মেইন চ্যাট ইন্টারফেস -->
     <div class="chat-container" id="chatContainer" style="display: none;">
         <div class="header">
-            <h1>Gemini ChatBot</h1>
+            <h1>OpenAI ChatBot</h1>
             <div class="api-status">
                 <span id="apiStatus">Connected</span>
                 <button onclick="changeApiKey()">Change API Key</button>
@@ -47,7 +46,7 @@
         </div>
         
         <div id="chatbox" class="chatbox">
-            <div class="bot-message">Hello! I'm powered by Google Gemini. How can I help you today?</div>
+            <div class="bot-message">Hello! I'm powered by OpenAI. How can I help you today?</div>
         </div>
         
         <div class="input-area">
@@ -56,8 +55,6 @@
         </div>
     </div>
 
-    <!-- Gemini AI লাইব্রেরি -->
-    <script src="https://unpkg.com/@google/generative-ai/dist/generative-ai.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
